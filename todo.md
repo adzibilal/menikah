@@ -12,9 +12,9 @@
 
 ## Backend Development
 ### User Management
-- [ ] Implement user registration
-- [ ] Implement user login/logout
-- [ ] Implement password hashing and security
+- [x] Implement user registration
+- [x] Implement user login/logout
+- [x] Implement password hashing and security
 - [ ] Create user profile management (update profile, change password)
 
 ### Event Management
