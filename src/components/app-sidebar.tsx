@@ -1,15 +1,38 @@
 'use client';
 
-import { ArrowLeftToLineIcon, ChevronUp, Home, User2 } from 'lucide-react';
+import {
+    ArrowLeftToLineIcon,
+    ChevronUp,
+    Home,
+    User2,
+    BookIcon,
+    BookHeartIcon,
+    ImageIcon,
+    MessageCircle,
+    Settings,
+} from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, 
-         SidebarGroupContent, SidebarGroupLabel, SidebarMenu,
-         SidebarMenuButton, SidebarMenuItem, SidebarTrigger } from '@/components/ui/sidebar';
-import { DropdownMenu, DropdownMenuContent, 
-         DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+    Sidebar,
+    SidebarContent,
+    SidebarFooter,
+    SidebarGroup,
+    SidebarGroupContent,
+    SidebarGroupLabel,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+    SidebarTrigger,
+} from '@/components/ui/sidebar';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 type MenuItem = {
     title: string;
@@ -20,11 +43,36 @@ type MenuItem = {
 const MENU_ITEMS = {
     admin: [
         { title: 'Dashboard', url: '/dashboard', icon: Home },
-        { title: 'Users', url: '/dashboard/users', icon: User2 }
+        { title: 'Users', url: '/dashboard/users', icon: User2 },
     ],
     user: [
-        { title: 'Dashboard', url: '/dashboard/u/', icon: Home }
-    ]
+        { title: 'Dashboard', url: '/dashboard/u/{id}', icon: Home },
+        {
+            title: 'Wedding Details',
+            url: '/dashboard/u/{id}/wedding-details',
+            icon: BookHeartIcon,
+        },
+        {
+            title: 'Guest List',
+            url: '/dashboard/u/{id}/guest-list',
+            icon: BookIcon,
+        },
+        {
+            title: 'Gallery',
+            url: '/dashboard/u/{id}/gallery',
+            icon: ImageIcon,
+        },
+        {
+            title: 'What they say',
+            url: '/dashboard/u/{id}/what-they-say',
+            icon: MessageCircle,
+        },
+        {
+            title: 'Settings',
+            url: '/dashboard/u/{id}/settings',
+            icon: Settings,
+        },
+    ],
 } as const;
 
 export function AppSidebar() {
@@ -32,13 +80,20 @@ export function AppSidebar() {
     const pathName = usePathname();
     const [menuItem, setMenuItem] = useState<MenuItem[]>([]);
 
+    const parseUserLink = (url: string) => {
+        return url.replace('{id}', session?.user?.id || '');
+    };
+
     useEffect(() => {
-        const isAdminPath = ['/dashboard', '/dashboard/users'].includes(pathName);
+        const isAdminPath = ['/dashboard', '/dashboard/users'].includes(
+            pathName,
+        );
         setMenuItem(isAdminPath ? [...MENU_ITEMS.admin] : [...MENU_ITEMS.user]);
     }, [pathName]);
 
-    const showBackToAdmin = session?.user?.role === 'admin' && 
-                          !['/dashboard', '/dashboard/users'].includes(pathName);
+    const showBackToAdmin =
+        session?.user?.role === 'admin' &&
+        !['/dashboard', '/dashboard/users'].includes(pathName);
 
     return (
         <Sidebar>
@@ -50,8 +105,11 @@ export function AppSidebar() {
                         <SidebarMenu>
                             {menuItem.map(({ title, url, icon: Icon }) => (
                                 <SidebarMenuItem key={title}>
-                                    <SidebarMenuButton asChild isActive={pathName === url}>
-                                        <a href={url}>
+                                    <SidebarMenuButton
+                                        asChild
+                                        isActive={pathName === url}
+                                    >
+                                        <a href={parseUserLink(url)}>
                                             <Icon />
                                             <span>{title}</span>
                                         </a>
@@ -61,7 +119,7 @@ export function AppSidebar() {
 
                             {showBackToAdmin && (
                                 <SidebarMenuItem>
-                                    <SidebarMenuButton asChild> 
+                                    <SidebarMenuButton asChild>
                                         <a href="/dashboard">
                                             <ArrowLeftToLineIcon />
                                             <span>Back to Admin Dashboard</span>
@@ -85,14 +143,21 @@ export function AppSidebar() {
                                     <ChevronUp className="ml-auto" />
                                 </SidebarMenuButton>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent side="top" className="w-[--radix-popper-anchor-width]">
+                            <DropdownMenuContent
+                                side="top"
+                                className="w-[--radix-popper-anchor-width]"
+                            >
                                 <DropdownMenuItem>
                                     <span>{session?.user?.name}</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem>
                                     <span>{session?.user?.email}</span>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/sign-in' })}>
+                                <DropdownMenuItem
+                                    onClick={() =>
+                                        signOut({ callbackUrl: '/sign-in' })
+                                    }
+                                >
                                     <span>Sign out</span>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
