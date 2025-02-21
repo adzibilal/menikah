@@ -1,11 +1,12 @@
 import NextAuth from "next-auth";
+import type { NextAuthConfig } from "next-auth";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { Admins } from "@/db/schema";
+import { Admins, Users } from "@/db/schema";
 import CredentialsProvider from "next-auth/providers/credentials";
-import {compare} from 'bcryptjs'
+import { compare } from 'bcryptjs';
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const authConfig: NextAuthConfig = {
   providers: [
     CredentialsProvider({
       id: "credentials",
@@ -19,6 +20,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
+        // First, check the admins table
         const admins = await db
           .select()
           .from(Admins)
@@ -27,18 +29,37 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const admin = admins[0];
 
-        if (!admin) {
-          return null;
+        if (admin) {
+          const isValid = await compare(credentials.password as string, admin.password_hash);
+          if (isValid) {
+            return {
+              id: admin.id,
+              email: admin.email,
+              name: admin.name || "",
+              role: 'admin'
+            };
+          }
         }
 
-        // Compare the provided password with the stored password hash
-        const isValid = await compare(credentials.password as string, admin.password_hash);
+        // If no admin found or password incorrect, check the users table
+        const users = await db
+          .select()
+          .from(Users)
+          .where(eq(Users.email, credentials.email as string))
+          .execute();
 
-        if (isValid) {
-          return {
-            id: admin.id,
-            email: admin.email,
-          };
+        const user = users[0];
+
+        if (user) {
+          const isValid = await compare(credentials.password as string, user.password_hash);
+          if (isValid) {
+            return {
+              id: user.user_id,
+              email: user.email,
+              name: user.name || "",
+              role: 'user'
+            };
+          }
         }
 
         return null;
@@ -47,22 +68,31 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     async session({ session, token }) {
-      // Add the admin ID to the session
-      if (token.sub) {
-        session.user.id = token.sub;
-      }
-      return session;
+      return {
+        ...session,
+        user: {
+          ...session.user,
+          id: token.sub,
+          email: token.email,
+          name: token.name,
+          role: token.role as string,
+        },
+      };
     },
     async jwt({ token, user }) {
-      // Add the admin ID to the JWT token
       if (user) {
         token.sub = user.id;
+        token.email = user.email;
+        token.name = user.name;
+        token.role = user.role;
       }
       return token;
     },
   },
   pages: {
-    signIn: "/sign-in", // Custom sign-in page
+    signIn: "/sign-in",
   },
-  secret: process.env.NEXTAUTH_SECRET, // Ensure you have this in your .env file
-});
+  secret: process.env.NEXTAUTH_SECRET,
+};
+
+export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);

@@ -17,13 +17,27 @@ export const invitationStatusEnum = pgEnum('invitation_status', [
 
 export const Users = pgTable('users', {
     user_id: uuid('user_id').defaultRandom().primaryKey(),
-    groom_name: varchar('groom_name', { length: 100 }).notNull(),
-    bride_name: varchar('bride_name', { length: 100 }).notNull(),
+    name: varchar('name', { length: 100 }),
     email: varchar('email', { length: 100 }).notNull().unique(),
     phone: varchar('phone', { length: 20 }).notNull(),
     slug: varchar('slug', { length: 100 }).notNull().unique(),
     password_hash: varchar('password_hash', { length: 255 }).notNull(),
     created_at: timestamp('created_at').defaultNow(),
+});
+
+export const UserDetails = pgTable('user_details', {
+    user_detail_id: uuid('user_detail_id').defaultRandom().primaryKey(),
+    user_id: uuid('user_id').notNull().references(() => Users.user_id),
+    groom_name: varchar('groom_name', { length: 100 }).notNull(),
+    bride_name: varchar('bride_name', { length: 100 }).notNull(),
+    groom_photo: varchar('groom_photo', { length: 255 }).notNull(),
+    bride_photo: varchar('bride_photo', { length: 255 }).notNull(),
+    groom_dad_name: varchar('groom_dad_name', { length: 100 }).notNull(),
+    bride_dad_name: varchar('bride_dad_name', { length: 100 }).notNull(),
+    groom_mum_name: varchar('groom_mum_name', { length: 100 }).notNull(),
+    bride_mum_name: varchar('bride_mum_name', { length: 100 }).notNull(),
+    groom_instagram: varchar('groom_instagram', { length: 100 }),
+    bride_instagram: varchar('bride_instagram', { length: 100 }),
 });
 
 export const Events = pgTable('events', {
@@ -102,6 +116,7 @@ export const Settings = pgTable('settings', {
 export const Admins = pgTable('admins', {
     id: uuid('admin_id').defaultRandom().primaryKey(),
     email: varchar('email', { length: 100 }).notNull().unique(),
+    name: varchar('name', { length: 100 }),
     password_hash: varchar('password_hash', { length: 255 }).notNull(),
     created_at: timestamp('created_at').defaultNow(),
 });

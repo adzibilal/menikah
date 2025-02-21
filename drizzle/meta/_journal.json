@@ -22,6 +22,20 @@
       "when": 1740070452741,
       "tag": "0002_eager_nuke",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1740120624562,
+      "tag": "0003_free_blazing_skull",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1740121040534,
+      "tag": "0004_fearless_fenris",
+      "breakpoints": true
     }
   ]
 }
