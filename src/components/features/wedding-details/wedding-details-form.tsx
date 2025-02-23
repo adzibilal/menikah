@@ -17,6 +17,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { debounce } from 'lodash';
 import { useToast } from '@/hooks/use-toast';
 import { useSession } from 'next-auth/react';
+import { useWeddingDetails } from '@/store/use-wedding-details';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 const weddingDetailsSchema = z.object({
     groom_name: z.string().min(1, 'Groom name is required'),
@@ -33,82 +35,90 @@ const weddingDetailsSchema = z.object({
 
 type WeddingDetailsForm = z.infer<typeof weddingDetailsSchema>;
 
-interface WeddingDetailsFormProps {
-    initialData?: WeddingDetailsForm;
-}
+const defaultFormValues: WeddingDetailsForm = {
+    groom_name: '',
+    bride_name: '',
+    groom_photo: '',
+    bride_photo: '',
+    groom_dad_name: '',
+    bride_dad_name: '',
+    groom_mum_name: '',
+    bride_mum_name: '',
+    groom_instagram: '',
+    bride_instagram: '',
+};
 
-export default function WeddingDetailsForm({
-    initialData,
-}: WeddingDetailsFormProps) {
+export default function WeddingDetailsForm() {
     const session = useSession();
     const userId = session.data?.user.id;
     const { toast } = useToast();
+    const { details, isLoading, error, fetchDetails, updateDetail } = useWeddingDetails();
+
     const form = useForm<WeddingDetailsForm>({
         resolver: zodResolver(weddingDetailsSchema),
-        defaultValues: initialData || {
-            groom_name: '',
-            bride_name: '',
-            groom_photo: '',
-            bride_photo: '',
-            groom_dad_name: '',
-            bride_dad_name: '',
-            groom_mum_name: '',
-            bride_mum_name: '',
-            groom_instagram: '',
-            bride_instagram: '',
-        },
+        defaultValues: defaultFormValues,
     });
 
+    // Fetch initial data
+    useEffect(() => {
+        if (userId) {
+            fetchDetails(userId);
+        }
+    }, [userId, fetchDetails]);
+
+    // Update form when details change
+    useEffect(() => {
+        if (details) {
+            Object.keys(defaultFormValues).forEach((key) => {
+                const value = details[key as keyof WeddingDetailsForm];
+                form.setValue(
+                    key as keyof WeddingDetailsForm, 
+                    value || '' // Ensure we always set a string value
+                );
+            });
+        }
+    }, [details, form]);
+
     // Debounced update function
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     const debouncedUpdate = useCallback(
-        debounce((field: string, value: string) => {
-            fetch(`/api/wedding-details/${userId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ [field]: value }),
-            })
-                .then((response) => response.json())
-                .then((data) => {
-                    if (!data.error) {
-                        toast({
-                            title: 'Success',
-                            description: `Updated ${field.replace(/_/g, ' ')}`,
-                            variant: 'default',
-                        });
-                    } else {
-                        throw new Error(data.error);
-                    }
-                })
-                .catch((error) => {
-                    toast({
-                        title: 'Error',
-                        description: 'Failed to update: ' + error.message,
-                        variant: 'destructive',
-                    });
-                    // Revert form value on error
-                    form.setValue(
-                        field as keyof WeddingDetailsForm,
-                        initialData?.[field as keyof WeddingDetailsForm] || '',
-                    );
+        debounce(async (field: string, value: string) => {
+            if (!userId || value === undefined) return;
+
+            try {
+                await updateDetail(userId, field, value);
+                toast({
+                    title: 'Success',
+                    description: `Updated ${field.replace(/_/g, ' ')}`,
+                    variant: 'default',
                 });
+            } catch (error) {
+                toast({
+                    title: 'Error',
+                    description: 'Failed to update: ' + (error as Error).message,
+                    variant: 'destructive',
+                });
+            }
         }, 1000),
-        [userId, toast, form, initialData],
+        [userId, updateDetail, toast]
     );
 
     // Watch for form changes
     useEffect(() => {
         const subscription = form.watch((value, { name, type }) => {
-            if (name && type === 'change') {
-                debouncedUpdate(
-                    name,
-                    value[name as keyof WeddingDetailsForm] as string,
-                );
+            if (name && type === 'change' && value[name] !== undefined) {
+                debouncedUpdate(name, value[name as keyof WeddingDetailsForm] as string);
             }
         });
         return () => subscription.unsubscribe();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [form.watch, debouncedUpdate]);
+
+    if (isLoading) {
+        return <LoadingSpinner />;
+    }
+
+    if (error) {
+        return <div className="text-red-500">Error: {error}</div>;
+    }
 
     return (
         <Card className="w-full mx-auto">
