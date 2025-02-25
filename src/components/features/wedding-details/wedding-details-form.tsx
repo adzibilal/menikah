@@ -18,7 +18,8 @@ import { debounce } from 'lodash';
 import { useToast } from '@/hooks/use-toast';
 import { useSession } from 'next-auth/react';
 import { useWeddingDetails } from '@/store/use-wedding-details';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { ImageUploader } from '@/components/ui/image-uploader';
+import { WeddingDetailsSkeleton } from '@/components/features/wedding-details/wedding-details-skeleton';
 
 const weddingDetailsSchema = z.object({
     groom_name: z.string().min(1, 'Groom name is required'),
@@ -52,19 +53,13 @@ export default function WeddingDetailsForm() {
     const session = useSession();
     const userId = session.data?.user.id;
     const { toast } = useToast();
-    const { details, isLoading, error, fetchDetails, updateDetail } = useWeddingDetails();
+    const { details, isLoading, error, updateDetail } = useWeddingDetails();
 
     const form = useForm<WeddingDetailsForm>({
         resolver: zodResolver(weddingDetailsSchema),
         defaultValues: defaultFormValues,
     });
-
-    // Fetch initial data
-    useEffect(() => {
-        if (userId) {
-            fetchDetails(userId);
-        }
-    }, [userId, fetchDetails]);
+   
 
     // Update form when details change
     useEffect(() => {
@@ -113,7 +108,7 @@ export default function WeddingDetailsForm() {
     }, [form.watch, debouncedUpdate]);
 
     if (isLoading) {
-        return <LoadingSpinner />;
+        return <WeddingDetailsSkeleton />;
     }
 
     if (error) {
@@ -127,8 +122,54 @@ export default function WeddingDetailsForm() {
             </CardHeader>
             <CardContent>
                 <Form {...form}>
-                    <div className="grid grid-cols-2 gap-4">
-                        {/* Bride and Groom Section */}
+                    <div className="grid grid-cols-2 gap-6">
+                        {/* Photos Section */}
+                        <div className="col-span-2 grid grid-cols-2 gap-6 mb-6">
+                            <div className="space-y-4">
+                                <FormField
+                                    control={form.control}
+                                    name="groom_photo"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Groom Photo</FormLabel>
+                                            <FormControl>
+                                                <ImageUploader
+                                                    defaultImage={field.value}
+                                                    onUploadComplete={(url) => {
+                                                        field.onChange(url);
+                                                        debouncedUpdate('groom_photo', url);
+                                                    }}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                            <div className="space-y-4">
+                                <FormField
+                                    control={form.control}
+                                    name="bride_photo"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Bride Photo</FormLabel>
+                                            <FormControl>
+                                                <ImageUploader
+                                                    defaultImage={field.value}
+                                                    onUploadComplete={(url) => {
+                                                        field.onChange(url);
+                                                        debouncedUpdate('bride_photo', url);
+                                                    }}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Left Column */}
                         <div className="space-y-4">
                             <FormField
                                 control={form.control}
@@ -137,82 +178,20 @@ export default function WeddingDetailsForm() {
                                     <FormItem>
                                         <FormLabel>Groom Name</FormLabel>
                                         <FormControl>
-                                            <Input
-                                                placeholder="Enter groom name"
-                                                {...field}
-                                            />
+                                            <Input placeholder="Enter groom name" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
-                            <FormField
-                                control={form.control}
-                                name="groom_photo"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Groom Photo URL</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                placeholder="Enter groom photo URL"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-                        <div className="space-y-4">
-                            <FormField
-                                control={form.control}
-                                name="bride_name"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Bride Name</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                placeholder="Enter bride name"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="bride_photo"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Bride Photo URL</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                placeholder="Enter bride photo URL"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-
-                        {/* Parents Section */}
-                        <div className="space-y-4">
                             <FormField
                                 control={form.control}
                                 name="groom_dad_name"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>
-                                            Groom&apos;s Father Name
-                                        </FormLabel>
+                                        <FormLabel>Groom&apos;s Father Name</FormLabel>
                                         <FormControl>
-                                            <Input
-                                                placeholder="Enter groom's father name"
-                                                {...field}
-                                            />
+                                            <Input placeholder="Enter groom's father name" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -223,34 +202,52 @@ export default function WeddingDetailsForm() {
                                 name="groom_mum_name"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>
-                                            Groom&apos;s Mother Name
-                                        </FormLabel>
+                                        <FormLabel>Groom&apos;s Mother Name</FormLabel>
                                         <FormControl>
-                                            <Input
-                                                placeholder="Enter groom's mother name"
-                                                {...field}
-                                            />
+                                            <Input placeholder="Enter groom's mother name" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="groom_instagram"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Groom&apos;s Instagram</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="Enter groom's Instagram" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
                         </div>
+
+                        {/* Right Column */}
                         <div className="space-y-4">
+                            <FormField
+                                control={form.control}
+                                name="bride_name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Bride Name</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="Enter bride name" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                             <FormField
                                 control={form.control}
                                 name="bride_dad_name"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>
-                                            Bride&apos;s Father Name
-                                        </FormLabel>
+                                        <FormLabel>Bride&apos;s Father Name</FormLabel>
                                         <FormControl>
-                                            <Input
-                                                placeholder="Enter bride's father name"
-                                                {...field}
-                                            />
+                                            <Input placeholder="Enter bride's father name" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -261,56 +258,22 @@ export default function WeddingDetailsForm() {
                                 name="bride_mum_name"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>
-                                            Bride&apos;s Mother Name
-                                        </FormLabel>
+                                        <FormLabel>Bride&apos;s Mother Name</FormLabel>
                                         <FormControl>
-                                            <Input
-                                                placeholder="Enter bride's mother name"
-                                                {...field}
-                                            />
+                                            <Input placeholder="Enter bride's mother name" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
-                        </div>
-
-                        {/* Social Media Section */}
-                        <div className="space-y-4">
-                            <FormField
-                                control={form.control}
-                                name="groom_instagram"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>
-                                            Groom&apos;s Instagram
-                                        </FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                placeholder="Enter groom's Instagram"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-                        <div className="space-y-4">
                             <FormField
                                 control={form.control}
                                 name="bride_instagram"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>
-                                            Bride&apos;s Instagram
-                                        </FormLabel>
+                                        <FormLabel>Bride&apos;s Instagram</FormLabel>
                                         <FormControl>
-                                            <Input
-                                                placeholder="Enter bride's Instagram"
-                                                {...field}
-                                            />
+                                            <Input placeholder="Enter bride's Instagram" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>

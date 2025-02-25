@@ -14,8 +14,18 @@ interface WeddingDetails {
     bride_instagram?: string;
 }
 
+interface Event {
+    event_id: string;
+    event_name: string;
+    event_date: string;
+    event_location: string;
+    event_map_link?: string;
+    event_description?: string;
+}
+
 interface WeddingDetailsState {
     details: WeddingDetails | null;
+    events: Event[];
     isLoading: boolean;
     error: string | null;
     fetchDetails: (userId: string) => Promise<void>;
@@ -24,19 +34,27 @@ interface WeddingDetailsState {
 
 export const useWeddingDetails = create<WeddingDetailsState>((set) => ({
     details: null,
+    events: [],
     isLoading: false,
     error: null,
     fetchDetails: async (userId: string) => {
         set({ isLoading: true });
         try {
             const response = await fetch(`/api/wedding-details/${userId}`);
-            const data: BaseAPIResponse<{ details: WeddingDetails }> = await response.json();
+            const data: BaseAPIResponse<{ details: WeddingDetails; events: Event[] }> = 
+                await response.json();
             
             if (data.error) {
                 throw new Error(data.error);
             }
+
+            console.debug('data', data);
             
-            set({ details: data.data.details, error: null });
+            set({ 
+                details: data.data.details, 
+                events: data.data.events,
+                error: null 
+            });
         } catch (error) {
             set({ error: (error as Error).message });
         } finally {
